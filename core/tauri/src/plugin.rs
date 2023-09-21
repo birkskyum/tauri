@@ -17,6 +17,9 @@ use url::Url;
 
 use std::{fmt, result::Result as StdResult, sync::Arc};
 
+#[cfg(mobile)]
+use std::sync::atomic::AtomicU32;
+
 /// Mobile APIs.
 #[cfg(mobile)]
 pub mod mobile;
@@ -85,6 +88,8 @@ type OnDrop<R> = dyn FnOnce(AppHandle<R>) + Send;
 pub struct PluginHandle<R: Runtime> {
   name: &'static str,
   handle: AppHandle<R>,
+  #[cfg(mobile)]
+  next_plugin_command_id: Arc<AtomicU32>,
 }
 
 impl<R: Runtime> Clone for PluginHandle<R> {
@@ -92,6 +97,8 @@ impl<R: Runtime> Clone for PluginHandle<R> {
     Self {
       name: self.name,
       handle: self.handle.clone(),
+      #[cfg(mobile)]
+      next_plugin_command_id: self.next_plugin_command_id.clone(),
     }
   }
 }

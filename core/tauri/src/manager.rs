@@ -33,7 +33,7 @@ use crate::{
     AppHandle, GlobalWindowEvent, GlobalWindowEventListener, OnPageLoad, PageLoadPayload,
     UriSchemeResponder,
   },
-  event::{assert_event_name_is_valid, Event, EventHandler, Listeners},
+  event::{assert_event_name_is_valid, Event, EventId, Listeners},
   ipc::{Invoke, InvokeHandler, InvokeResponder},
   pattern::PatternJavascript,
   plugin::PluginStore,
@@ -218,7 +218,7 @@ fn replace_csp_nonce(
 pub struct InnerWindowManager<R: Runtime> {
   pub(crate) windows: Mutex<HashMap<String, Window<R>>>,
   pub(crate) plugins: Mutex<PluginStore<R>>,
-  listeners: Listeners,
+  pub(crate) listeners: Listeners,
   pub(crate) state: Arc<StateManager>,
 
   /// The JS message handler.
@@ -1194,8 +1194,8 @@ impl<R: Runtime> WindowManager<R> {
     &self.inner.package_info
   }
 
-  pub fn unlisten(&self, handler_id: EventHandler) {
-    self.inner.listeners.unlisten(handler_id)
+  pub fn unlisten(&self, id: EventId) {
+    self.inner.listeners.unlisten(id)
   }
 
   pub fn trigger(&self, event: &str, window: Option<String>, data: Option<String>) {
@@ -1208,7 +1208,7 @@ impl<R: Runtime> WindowManager<R> {
     event: String,
     window: Option<String>,
     handler: F,
-  ) -> EventHandler {
+  ) -> EventId {
     assert_event_name_is_valid(&event);
     self.inner.listeners.listen(event, window, handler)
   }
@@ -1218,7 +1218,7 @@ impl<R: Runtime> WindowManager<R> {
     event: String,
     window: Option<String>,
     handler: F,
-  ) -> EventHandler {
+  ) {
     assert_event_name_is_valid(&event);
     self.inner.listeners.once(event, window, handler)
   }

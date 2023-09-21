@@ -17,7 +17,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use std::{
   collections::HashMap,
   fmt,
-  sync::{mpsc::channel, Mutex},
+  sync::{atomic::Ordering, mpsc::channel, Mutex},
 };
 
 type PluginResponse = Result<serde_json::Value, serde_json::Value>;
@@ -184,6 +184,7 @@ impl<R: Runtime, C: DeserializeOwned> PluginApi<R, C> {
     Ok(PluginHandle {
       name: self.name,
       handle: self.handle.clone(),
+      next_plugin_command_id: Default::default(),
     })
   }
 
@@ -268,6 +269,7 @@ impl<R: Runtime, C: DeserializeOwned> PluginApi<R, C> {
     Ok(PluginHandle {
       name: self.name,
       handle: self.handle.clone(),
+      next_plugin_command_id: Default::default(),
     })
   }
 }
@@ -279,10 +281,12 @@ impl<R: Runtime> PluginHandle<R> {
     command: impl AsRef<str>,
     payload: impl Serialize,
   ) -> Result<T, PluginInvokeError> {
+    let id = self.next_plugin_command_id.fetch_add(1, Ordering::Relaxed);
     let (tx, rx) = channel();
     run_command(
       self.name,
       &self.handle,
+      id,
       command,
       serde_json::to_value(payload).map_err(PluginInvokeError::CannotSerializePayload)?,
       move |response| {
@@ -306,6 +310,7 @@ impl<R: Runtime> PluginHandle<R> {
 pub(crate) fn run_command<R: Runtime, C: AsRef<str>, F: FnOnce(PluginResponse) + Send + 'static>(
   name: &str,
   _handle: &AppHandle<R>,
+  id: u32,
   command: C,
   payload: serde_json::Value,
   handler: F,
@@ -315,7 +320,6 @@ pub(crate) fn run_command<R: Runtime, C: AsRef<str>, F: FnOnce(PluginResponse) +
     os::raw::{c_char, c_int, c_ulonglong},
   };
 
-  let id: i32 = rand::random();
   PENDING_PLUGIN_CALLS
     .get_or_init(Default::default)
     .lock()
@@ -386,6 +390,7 @@ pub(crate) fn run_command<
 >(
   name: &str,
   handle: &AppHandle<R>,
+  id: u32,
   command: C,
   payload: serde_json::Value,
   handler: F,
@@ -434,7 +439,6 @@ pub(crate) fn run_command<
     _ => unreachable!(),
   };
 
-  let id: i32 = rand::random();
   let plugin_name = name.to_string();
   let command = command.as_ref().to_string();
   let handle_ = handle.clone();
@@ -443,10 +447,18 @@ pub(crate) fn run_command<
     .get_or_init(Default::default)
     .lock()
     .unwrap()
-    .insert(id, Box::new(handler.clone()));
+    .insert(id as _, Box::new(handler.clone()));
 
   handle.run_on_android_context(move |env, activity, _webview| {
-    if let Err(e) = run::<R>(id, &plugin_name, command, &payload, handle_, env, activity) {
+    if let Err(e) = run::<R>(
+      id as _,
+      &plugin_name,
+      command,
+      &payload,
+      handle_,
+      env,
+      activity,
+    ) {
       handler(Err(e.to_string().into()));
     }
   });

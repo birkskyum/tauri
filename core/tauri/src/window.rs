@@ -13,7 +13,7 @@ use crate::TitleBarStyle;
 use crate::{
   app::{AppHandle, UriSchemeResponder},
   command::{CommandArg, CommandItem},
-  event::{Event, EventHandler},
+  event::{Event, EventId},
   ipc::{
     CallbackFn, Invoke, InvokeBody, InvokeError, InvokeMessage, InvokeResolver,
     OwnedInvokeResponder,
@@ -56,7 +56,7 @@ use std::{
   fmt,
   hash::{Hash, Hasher},
   path::PathBuf,
-  sync::{Arc, Mutex},
+  sync::{atomic::Ordering, Arc, Mutex},
 };
 
 pub(crate) type WebResourceRequestHandler =
@@ -896,7 +896,7 @@ pub struct Window<R: Runtime> {
   /// The manager to associate this webview window with.
   pub(crate) manager: WindowManager<R>,
   pub(crate) app_handle: AppHandle<R>,
-  js_event_listeners: Arc<Mutex<HashMap<JsEventListenerKey, HashSet<usize>>>>,
+  js_event_listeners: Arc<Mutex<HashMap<JsEventListenerKey, HashSet<u32>>>>,
   // The menu set for this window
   #[cfg(desktop)]
   pub(crate) menu: Arc<Mutex<Option<WindowMenu<R>>>>,
@@ -2192,6 +2192,7 @@ impl<R: Runtime> Window<R> {
                 plugin,
                 &app_handle,
                 message.command,
+                id,
                 payload,
                 move |response| match response {
                   Ok(r) => resolver_.resolve(r),
@@ -2229,8 +2230,14 @@ impl<R: Runtime> Window<R> {
     window_label: Option<String>,
     event: String,
     handler: CallbackFn,
-  ) -> crate::Result<usize> {
-    let event_id = rand::random();
+  ) -> crate::Result<u32> {
+    let event_id = self
+      .manager
+      .inner
+      .listeners
+      .inner
+      .next_event_id
+      .fetch_add(1, Ordering::Release);
 
     self.eval(&crate::event::listen_js(
       self.manager().event_listeners_object_name(),
@@ -2255,7 +2262,7 @@ impl<R: Runtime> Window<R> {
   }
 
   /// Unregister a JS event listener.
-  pub(crate) fn unlisten_js(&self, event: String, id: usize) -> crate::Result<()> {
+  pub(crate) fn unlisten_js(&self, event: String, id: u32) -> crate::Result<()> {
     self.eval(&crate::event::unlisten_js(
       self.manager().event_listeners_object_name(),
       event,
@@ -2478,7 +2485,7 @@ impl<R: Runtime> Window<R> {
   ///     Ok(())
   ///   });
   /// ```
-  pub fn listen<F>(&self, event: impl Into<String>, handler: F) -> EventHandler
+  pub fn listen<F>(&self, event: impl Into<String>, handler: F) -> EventId
   where
     F: Fn(Event) + Send + 'static,
   {
@@ -2511,14 +2518,14 @@ impl<R: Runtime> Window<R> {
   ///     Ok(())
   ///   });
   /// ```
-  pub fn unlisten(&self, handler_id: EventHandler) {
-    self.manager.unlisten(handler_id)
+  pub fn unlisten(&self, id: EventId) {
+    self.manager.unlisten(id)
   }
 
   /// Listen to an event on this window a single time.
   ///
   /// See [`Self::listen`] for more information.
-  pub fn once<F>(&self, event: impl Into<String>, handler: F) -> EventHandler
+  pub fn once<F>(&self, event: impl Into<String>, handler: F)
   where
     F: FnOnce(Event) + Send + 'static,
   {

@@ -2,9 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::{fmt, hash::Hash};
-use uuid::Uuid;
-
 mod commands;
 mod listener;
 pub(crate) use listener::Listeners;
@@ -28,26 +25,19 @@ pub fn assert_event_name_is_valid(event: &str) {
   );
 }
 
-/// Represents an event handler.
-#[derive(Debug, Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct EventHandler(Uuid);
-
-impl fmt::Display for EventHandler {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    self.0.fmt(f)
-  }
-}
+/// Unique id of an event.
+pub type EventId = u32;
 
 /// An event that was triggered.
 #[derive(Debug, Clone)]
 pub struct Event {
-  id: EventHandler,
+  id: EventId,
   data: Option<String>,
 }
 
 impl Event {
-  /// The [`EventHandler`] that was triggered.
-  pub fn id(&self) -> EventHandler {
+  /// The [`EventId`] of the handler that was triggered.
+  pub fn id(&self) -> EventId {
     self.id
   }
 
@@ -68,7 +58,7 @@ pub(crate) fn init<R: Runtime>() -> TauriPlugin<R> {
     .build()
 }
 
-pub fn unlisten_js(listeners_object_name: String, event_name: String, event_id: usize) -> String {
+pub fn unlisten_js(listeners_object_name: String, event_name: String, event_id: u32) -> String {
   format!(
     "
       (function () {{
@@ -87,7 +77,7 @@ pub fn unlisten_js(listeners_object_name: String, event_name: String, event_id: 
 pub fn listen_js(
   listeners_object_name: String,
   event: String,
-  event_id: usize,
+  event_id: u32,
   window_label: Option<String>,
   handler: String,
 ) -> String {

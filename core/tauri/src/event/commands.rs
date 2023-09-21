@@ -51,12 +51,12 @@ pub fn listen<R: Runtime>(
   event: EventId,
   window_label: Option<WindowLabel>,
   handler: CallbackFn,
-) -> Result<usize> {
+) -> Result<u32> {
   window.listen_js(window_label.map(|l| l.0), event.0, handler)
 }
 
 #[command(root = "crate")]
-pub fn unlisten<R: Runtime>(window: Window<R>, event: EventId, event_id: usize) -> Result<()> {
+pub fn unlisten<R: Runtime>(window: Window<R>, event: EventId, event_id: u32) -> Result<()> {
   window.unlisten_js(event.0, event_id)
 }
 
