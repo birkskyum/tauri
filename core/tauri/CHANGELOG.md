@@ -1,5 +1,26 @@
 # Changelog
 
+## \[2.0.0-alpha.15]
+
+### Bug Fixes
+
+- [`a2021c30`](https://www.github.com/tauri-apps/tauri/commit/a2021c30ba1139fcfe4db2522b96125f3fa4d9d6)([#7866](https://www.github.com/tauri-apps/tauri/pull/7866)) Changed `IconMenuItem::set_native_icon` signature to take `&self` instead of `&mut self` to fix compilation error on macos.
+- [`a68ccaf5`](https://www.github.com/tauri-apps/tauri/commit/a68ccaf59a6731dc030bdb4642a35e3bc64d5769)([#7822](https://www.github.com/tauri-apps/tauri/pull/7822)) Fix `asset` protocol failing to fetch files.
+- [`6fbd6dba`](https://www.github.com/tauri-apps/tauri/commit/6fbd6dba5290dc017ab0ba5a44cf4358b022836f)([#17](https://www.github.com/tauri-apps/tauri/pull/17)) Fix the validation of `std::env::current_exe` warn the user if AppImage is not mounted instead of panicking
+
+### Dependencies
+
+- Upgraded to `tauri-macros@2.0.0-alpha.8`
+- Upgraded to `tauri-utils@2.0.0-alpha.8`
+- Upgraded to `tauri-build@2.0.0-alpha.9`
+- Upgraded to `tauri-runtime@1.0.0-alpha.2`
+- Upgraded to `tauri-runtime-wry@1.0.0-alpha.3`
+
+### Breaking Changes
+
+- [`092a561c`](https://www.github.com/tauri-apps/tauri/commit/092a561ca69a631d2a03777e29debeba37b197a7)([#7874](https://www.github.com/tauri-apps/tauri/pull/7874)) Removed `tauri::api` module as most apis have been moved to either a plugin or we recommend using other crates.
+- [`deea9436`](https://www.github.com/tauri-apps/tauri/commit/deea9436261f651188e0bc86104779bf30029c32)([#7876](https://www.github.com/tauri-apps/tauri/pull/7876)) Changed `Env.args` to `Env.args_os` and now uses `OsString` instead of `String`
+
 ## \[2.0.0-alpha.14]
 
 ### Bug Fixes

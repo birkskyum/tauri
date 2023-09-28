@@ -1,5 +1,16 @@
 # Changelog
 
+## \[2.0.0-alpha.15]
+
+### Bug Fixes
+
+- [`100d9ede`](https://www.github.com/tauri-apps/tauri/commit/100d9ede35995d9db21d2087dd5606adfafb89a5)([#7802](https://www.github.com/tauri-apps/tauri/pull/7802)) Properly read platform-specific configuration files for mobile targets.
+- [`228e5a4c`](https://www.github.com/tauri-apps/tauri/commit/228e5a4c76ad5f97409c912d07699b49ba4bb162)([#7902](https://www.github.com/tauri-apps/tauri/pull/7902)) Fixes `icon` command not writing files to the correct Android project folders.
+
+### Dependencies
+
+- Upgraded to `tauri-cli@2.0.0-alpha.15`
+
 ## \[2.0.0-alpha.14]
 
 ### Dependencies
